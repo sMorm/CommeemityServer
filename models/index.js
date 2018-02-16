@@ -12,7 +12,7 @@ const models = {
   Post: sequelize.import('./post'),
   Repost: sequelize.import('./repost'),
   Replies: sequelize.import('./replies'),
-  Likes: sequelize.import('./likes')
+  Likes: sequelize.import('./like')
 }
 
 Object.keys(models).forEach((modelName) => {
