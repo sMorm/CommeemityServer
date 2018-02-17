@@ -1,16 +1,59 @@
+import bcrypt from 'bcrypt'
+/**
+ * check for error code 23505, which means that 
+ * there is a unique key value violation.
+ */
+function formatError(error) {
+  const details = error.detail.split('=')
+  if(error.code = '23505' && details.length > 1) {
+    return [{
+      path: details[0],
+      message: details[1]
+    }]
+  }
+}
+
 export default {
   Query: {
-    getUser: (parent, { id }, { models }) => models.User.findOne({ where: { id }}),
+    getUser: async (parent, { id }, { models }) => {
+      const user = await models.User.query().findById(id)
+      return user
+    }
   },
   Mutation: {
-    createUser: async (parent, args, { models }) => {
-      const user = await models.User.query().findOne(args)
-
-      if(user) {
-        throw new Error('User already exists')
+    /**
+     * @password is deconstructed so we can use it to 
+     * verify its length. otherArgs contains: 
+     * @username, @firstname, @lastname, @email
+     */
+    signup: async (parent, { password, ...otherArgs }, { models }) => {
+      if(password.length < 6) {
+        return { success: false, 
+          errors: [{
+            path: 'password',
+            message: 'Password length must be at least 6 characters.'
+          }]
+        }
       }
 
-      await models.User.query().insert(args)
+      const hashedPass = await bcrypt.hash(password, 12)
+      if(hashedPass) {
+        const user = await models.User.query().insert({...otherArgs, password: hashedPass})
+        .onError((error) => {
+          return { success: false, errors: formatError(error) }
+        })
+      } else {
+        return { 
+          success: false,
+          errors: [{
+            path: 'password',
+            message: 'Failed to hash password'
+          }]
+        }
+      }
+      
+      user.success === false ? user : { success: true, user }
     }
   }
 }
+
