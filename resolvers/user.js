@@ -36,12 +36,16 @@ export default {
         }
       }
 
-      const hashedPass = await bcrypt.hash(password, 12)
-      if(hashedPass) {
+      const hashedPass = await bcrypt.hash(password, Number(process.env.BCRYPT_SALT))
+      if (hashedPass) {
         const user = await models.User.query().insert({...otherArgs, password: hashedPass})
-        .onError((error) => {
-          return { success: false, errors: formatError(error) }
-        })
+          .onError((error) => {
+            return { success: false, errors: formatError(error) }
+          })
+        if (user.success === false)
+          return user
+        else 
+          return { success: true, user }
       } else {
         return { 
           success: false,
@@ -51,8 +55,6 @@ export default {
           }]
         }
       }
-      
-      user.success === false ? user : { success: true, user }
     }
   }
 }
